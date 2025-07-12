@@ -1,0 +1,4 @@
+skip_*.bash
+.dogcats/.issues.lock
+/test-build
+/http_auth
