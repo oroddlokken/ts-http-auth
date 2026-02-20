@@ -32,6 +32,8 @@ type usersClient interface {
 	List(ctx context.Context, userType *tailscale.UserType, role *tailscale.UserRole) ([]tailscale.User, error)
 }
 
+var version = "dev"
+
 const defaultExpiration = 15 * time.Second
 
 var logLevelMap = map[string]slog.Level{
