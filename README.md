@@ -25,7 +25,7 @@ Run with Docker Compose:
 # docker-compose.yml
 services:
   tailscale-http-auth:
-    build: .
+    image: ghcr.io/oroddlokken/ts-http-auth:latest
     container_name: tailscale-http-auth
     volumes:
       - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock
