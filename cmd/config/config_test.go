@@ -86,6 +86,9 @@ func TestNewConfig(t *testing.T) {
 	if cfg.Response.DeviceLookup != false {
 		t.Errorf("DeviceLookup = %v, want false", cfg.Response.DeviceLookup)
 	}
+	if len(cfg.Tailscale.AllowedTags) != 0 {
+		t.Errorf("AllowedTags = %v, want empty", cfg.Tailscale.AllowedTags)
+	}
 
 	// Check required values
 	if cfg.Tailscale.Tailnet != "test-tailnet" {
@@ -163,5 +166,26 @@ func TestNewConfig_CustomValues(t *testing.T) {
 	}
 	if cfg.Cache.DeviceTTL != 60 {
 		t.Errorf("DeviceTTL = %d, want 60", cfg.Cache.DeviceTTL)
+	}
+}
+
+func TestNewConfig_AllowedTags(t *testing.T) {
+	t.Setenv("TAILSCALE_TAILNET", "test-tailnet")
+	t.Setenv("TAILSCALE_OAUTH_CLIENT_ID", "test-client-id")
+	t.Setenv("TAILSCALE_OAUTH_CLIENT_SECRET", "test-secret")
+	t.Setenv("TAILSCALE_ALLOWED_TAGS", "tag:monitor,tag:admin")
+
+	cfg, err := NewConfig()
+	if err != nil {
+		t.Fatalf("NewConfig() error = %v", err)
+	}
+	if len(cfg.Tailscale.AllowedTags) != 2 {
+		t.Fatalf("AllowedTags = %v, want 2 entries", cfg.Tailscale.AllowedTags)
+	}
+	if cfg.Tailscale.AllowedTags[0] != "tag:monitor" {
+		t.Errorf("AllowedTags[0] = %q, want %q", cfg.Tailscale.AllowedTags[0], "tag:monitor")
+	}
+	if cfg.Tailscale.AllowedTags[1] != "tag:admin" {
+		t.Errorf("AllowedTags[1] = %q, want %q", cfg.Tailscale.AllowedTags[1], "tag:admin")
 	}
 }

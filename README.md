@@ -152,6 +152,7 @@ All configuration is done via environment variables.
 | `TAILSCALE_DEVICE_LOOKUP` | `false` | Enable device info lookup via the Tailscale API |
 | `TAILSCALE_USER_LOOKUP` | `false` | Enable user info lookup (requires `TAILSCALE_DEVICE_LOOKUP=true`) |
 | `TAILSCALE_EXPECTED_TAILNET` | *(empty)* | If set, reject requests from devices not on this tailnet |
+| `TAILSCALE_ALLOWED_TAGS` | *(empty)* | Comma-separated list of tags. Tagged devices are rejected with 403 unless they have one of these tags |
 
 ## Response headers
 

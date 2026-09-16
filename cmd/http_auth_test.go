@@ -129,6 +129,13 @@ func testWhoisResponse() *apitype.WhoIsResponse {
 	}
 }
 
+func testTaggedWhoisResponse() *apitype.WhoIsResponse {
+	whois := testWhoisResponse()
+	whois.Node.Name = "myserver.my-tailnet.ts.net."
+	whois.Node.Tags = []string{"tag:server"}
+	return whois
+}
+
 func testDevice() *tailscale.Device {
 	return &tailscale.Device{
 		ID:            "12345",
@@ -291,9 +298,9 @@ func TestHandler_WithDeviceLookup(t *testing.T) {
 
 	h := rec.Header()
 	checks := map[string]string{
-		"X-Tailscale-Device-Authorized":    "true",
-		"X-Tailscale-Device-External":      "false",
-		"X-Tailscale-Device-Tags":          "tag:trusted",
+		"X-Tailscale-Device-Authorized":     "true",
+		"X-Tailscale-Device-External":       "false",
+		"X-Tailscale-Device-Tags":           "tag:trusted",
 		"X-Tailscale-Device-Client-Version": "1.80.2",
 	}
 	for header, want := range checks {
@@ -364,6 +371,79 @@ func TestHandler_TailnetMismatch(t *testing.T) {
 func TestHandler_TailnetMatch(t *testing.T) {
 	cfg := testConfig()
 	cfg.Tailscale.ExpectedTailnet = "my-tailnet.ts.net"
+
+	lc := &mockLocalClient{whoisFn: func(_ context.Context, _ string) (*apitype.WhoIsResponse, error) {
+		return testWhoisResponse(), nil
+	}}
+
+	service := newTestServiceWithMocks(cfg, lc, nil, nil)
+	rec := httptest.NewRecorder()
+	service.httpApi.handler(rec, authRequest())
+
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusNoContent)
+	}
+}
+
+func TestHandler_TaggedNodeNoAllowedTags(t *testing.T) {
+	cfg := testConfig()
+
+	lc := &mockLocalClient{whoisFn: func(_ context.Context, _ string) (*apitype.WhoIsResponse, error) {
+		return testTaggedWhoisResponse(), nil
+	}}
+
+	service := newTestServiceWithMocks(cfg, lc, nil, nil)
+	rec := httptest.NewRecorder()
+	service.httpApi.handler(rec, authRequest())
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+	if got := rec.Header().Get("X-Tailscale-Device-Id"); got != "" {
+		t.Errorf("X-Tailscale-Device-Id = %q, want empty", got)
+	}
+}
+
+func TestHandler_TaggedNodeNotAllowed(t *testing.T) {
+	cfg := testConfig()
+	cfg.Tailscale.AllowedTags = []string{"tag:monitor"}
+
+	lc := &mockLocalClient{whoisFn: func(_ context.Context, _ string) (*apitype.WhoIsResponse, error) {
+		return testTaggedWhoisResponse(), nil
+	}}
+
+	service := newTestServiceWithMocks(cfg, lc, nil, nil)
+	rec := httptest.NewRecorder()
+	service.httpApi.handler(rec, authRequest())
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+}
+
+func TestHandler_TaggedNodeAllowed(t *testing.T) {
+	cfg := testConfig()
+	cfg.Tailscale.AllowedTags = []string{"tag:monitor", "tag:server"}
+
+	lc := &mockLocalClient{whoisFn: func(_ context.Context, _ string) (*apitype.WhoIsResponse, error) {
+		return testTaggedWhoisResponse(), nil
+	}}
+
+	service := newTestServiceWithMocks(cfg, lc, nil, nil)
+	rec := httptest.NewRecorder()
+	service.httpApi.handler(rec, authRequest())
+
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusNoContent)
+	}
+	if got := rec.Header().Get("X-Tailscale-Device-Name"); got != "myserver.my-tailnet.ts.net." {
+		t.Errorf("X-Tailscale-Device-Name = %q, want %q", got, "myserver.my-tailnet.ts.net.")
+	}
+}
+
+func TestHandler_UntaggedNodeWithAllowedTags(t *testing.T) {
+	cfg := testConfig()
+	cfg.Tailscale.AllowedTags = []string{"tag:monitor"}
 
 	lc := &mockLocalClient{whoisFn: func(_ context.Context, _ string) (*apitype.WhoIsResponse, error) {
 		return testWhoisResponse(), nil

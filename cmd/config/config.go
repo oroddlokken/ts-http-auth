@@ -33,10 +33,11 @@ type LoggingConfig struct {
 }
 
 type TailscaleConfig struct {
-	ClientID        string `env:"TAILSCALE_OAUTH_CLIENT_ID,required"`
-	ClientSecret    string `env:"TAILSCALE_OAUTH_CLIENT_SECRET,required"`
-	Tailnet         string `env:"TAILSCALE_TAILNET,required"`
-	ExpectedTailnet string `env:"TAILSCALE_EXPECTED_TAILNET,default="`
+	ClientID        string   `env:"TAILSCALE_OAUTH_CLIENT_ID,required"`
+	ClientSecret    string   `env:"TAILSCALE_OAUTH_CLIENT_SECRET,required"`
+	Tailnet         string   `env:"TAILSCALE_TAILNET,required"`
+	ExpectedTailnet string   `env:"TAILSCALE_EXPECTED_TAILNET,default="`
+	AllowedTags     []string `env:"TAILSCALE_ALLOWED_TAGS,default="`
 }
 
 type ResponseConfig struct {

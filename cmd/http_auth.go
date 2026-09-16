@@ -231,6 +231,12 @@ func (api *HttpApi) handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if len(whois.Node.Tags) > 0 && !tagAllowed(whois.Node.Tags, api.service.config.Tailscale.AllowedTags) {
+		w.WriteHeader(http.StatusForbidden)
+		api.service.logger.Error("tagged device not allowed", "node", whois.Node.Name, "tags", whois.Node.Tags)
+		return
+	}
+
 	h := w.Header()
 	deviceId := fmt.Sprintf("%d", whois.Node.ID)
 	h.Set("X-Tailscale-Device-Id", deviceId)
@@ -300,6 +306,18 @@ func (api *HttpApi) handler(w http.ResponseWriter, r *http.Request) {
 	api.service.logger.Debug("successfully processed request")
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// tagAllowed reports whether any of the device's tags is in the allowed list.
+func tagAllowed(tags []string, allowed []string) bool {
+	for _, tag := range tags {
+		for _, a := range allowed {
+			if tag == a {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (api *HttpApi) healthz(w http.ResponseWriter, r *http.Request) {
